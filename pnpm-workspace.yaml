@@ -33,4 +33,5 @@ catalogs:
     typescript: ~6.0.3
     vitest: ^5.0.3
   prod:
+    '@modelcontextprotocol/sdk': 1.32.1
     effect: ^4.0.3
