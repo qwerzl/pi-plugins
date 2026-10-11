@@ -1,0 +1,13 @@
+node_modules/
+.nx/
+.eslintcache
+.githooks/
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage/
+dist/
+*.log
+*.tgz
+skills/npm-*

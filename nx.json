@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "sharedGlobals": ["{workspaceRoot}/tsconfig.json", "{workspaceRoot}/pnpm-lock.yaml", "{workspaceRoot}/pnpm-workspace.yaml"]
+  },
+  "targetDefaults": {
+    "effect:check": { "cache": true, "inputs": ["default", "^default"], "outputs": [] },
+    "typecheck": { "cache": true, "inputs": ["default", "^default"], "outputs": [] },
+    "test": { "cache": true, "inputs": ["default", "^default"], "outputs": [] }
+  }
+}

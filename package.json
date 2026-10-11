@@ -1,0 +1,48 @@
+{
+  "name": "@qwerzl/pi-plugins",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.22.0",
+  "description": "Native TypeScript extensions for pi",
+  "license": "MIT",
+  "repository": "https://github.com/qwerzl/pi-plugins",
+  "keywords": ["pi-package"],
+  "engines": { "node": ">=22.19.0" },
+  "pi": { "extensions": ["./packages/codexcont/src/index.ts"] },
+  "scripts": {
+    "lint": "eslint . --cache",
+    "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.tools.json && nx run-many -t typecheck",
+    "effect:check": "nx run-many -t effect:check",
+    "lsp:effect": "node scripts/effect-lsp.ts",
+    "test": "pnpm run test:tools && nx run-many -t test",
+    "test:tools": "vitest run scripts",
+    "knip": "knip",
+    "ci": "pnpm run lint && pnpm run typecheck && pnpm run effect:check && pnpm run knip && pnpm run test",
+    "prepare": "git config core.hooksPath .githooks && simple-git-hooks"
+  },
+  "nx": { "includedScripts": [] },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "catalog:dev",
+    "@effect/tsgo": "catalog:dev",
+    "@types/node": "catalog:dev",
+    "@typescript/native": "catalog:dev",
+    "eslint": "catalog:dev",
+    "eslint-plugin-slop": "catalog:dev",
+    "eslint-plugin-sonarjs": "catalog:dev",
+    "knip": "catalog:dev",
+    "nano-staged": "catalog:dev",
+    "nx": "catalog:dev",
+    "simple-git-hooks": "catalog:dev",
+    "typescript": "catalog:dev",
+    "vitest": "catalog:dev"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm install --frozen-lockfile --ignore-scripts --offline && pnpm run ci && pnpm exec nano-staged"
+  },
+  "nano-staged": { "*": "eslint --fix --no-warn-ignored" }
+}

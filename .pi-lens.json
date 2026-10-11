@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/apmantza/pi-lens/master/docs/schema/pi-lens-config-v1.json",
+  "lsp": {
+    "disabledServers": ["typescript", "deno"],
+    "servers": {
+      "effect-tsgo": {
+        "name": "Effect TypeScript",
+        "role": "language",
+        "extensions": [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"],
+        "command": "pnpm",
+        "args": ["--silent", "--workspace-root", "run", "lsp:effect"]
+      }
+    }
+  }
+}
