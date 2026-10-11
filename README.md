@@ -19,6 +19,7 @@ The main `typescript` dependency is held at 6.0 for ESLint compatibility. Effect
 | Package | Purpose |
 | --- | --- |
 | [`@qwerzl/pi-codexcont`](packages/codexcont) | Bounded reasoning continuation for OpenAI Responses providers, without a proxy server |
+| [`@qwerzl/pi-auto-title`](packages/auto-title) | Short emoji-first session titles that update as the topic changes |
 
 ```text
 packages/
@@ -112,6 +113,18 @@ pi install ./packages/codexcont
 **Before persistent installation, disable or move any previous CodexCont extension out of `~/.pi/agent/extensions/`.** Do not load two copies that override the same provider. Read the [package setup and risks](packages/codexcont/README.md) first.
 
 The root manifest also exposes the collection's extension entry points, so `pi install .` installs all plugins declared there. Install the published Git checkout with `pi install git:github.com/qwerzl/pi-plugins`.
+
+## Automatic session titles
+
+Install the [auto-title package](packages/auto-title) to name conversations automatically:
+
+```sh
+pi install ./packages/auto-title
+```
+
+Restart pi. After each completed reply, it generates a short emoji-first title (for example, `🏷️ Auto titles` or `🔐 Fix login`) and updates it only when the topic changes. Pi persists the name and includes it in the terminal title and session selector. A manual `/name` takes precedence.
+
+Naming uses one small background request to the active model per completed reply, with no requested thinking and a 15-second timeout. Provider billing applies; see the package README for context and usage-accounting limits.
 
 ## Add a plugin
 

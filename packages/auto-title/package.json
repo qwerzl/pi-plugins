@@ -1,0 +1,29 @@
+{
+  "name": "@qwerzl/pi-auto-title",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Short emoji-first pi session titles that follow the conversation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/qwerzl/pi-plugins.git",
+    "directory": "packages/auto-title"
+  },
+  "keywords": ["pi-package"],
+  "files": ["src/index.ts"],
+  "engines": { "node": ">=22.19.0" },
+  "pi": { "extensions": ["./src/index.ts"] },
+  "scripts": {
+    "typecheck": "node ../../node_modules/typescript/bin/tsc -p tsconfig.json",
+    "effect:check": "effect-tsgo diagnostics --project tsconfig.json --strict",
+    "test": "vitest run"
+  },
+  "nx": { "tags": ["type:pi-extension"] },
+  "peerDependencies": { "@earendil-works/pi-ai": "*", "@earendil-works/pi-coding-agent": "*" },
+  "dependencies": { "effect": "catalog:prod" },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "catalog:dev",
+    "@earendil-works/pi-coding-agent": "catalog:dev",
+    "vitest": "catalog:dev"
+  }
+}
