@@ -21,7 +21,7 @@ The main `typescript` dependency is held at 6.0 for ESLint compatibility. Effect
 | [`@qwerzl/pi-codexcont`](packages/codexcont) | Bounded reasoning continuation for OpenAI Responses providers, without a proxy server |
 | [`@qwerzl/pi-auto-title`](packages/auto-title) | Short emoji-first session titles that update as the topic changes |
 | [`@qwerzl/pi-codex-retry`](packages/codex-retry) | Codex-style retries for failed model responses, without hidden continuation messages |
-| [`@qwerzl/pi-browser`](packages/browser) | Personal Chrome browser tools using a pinned local Codex runtime, plus cmux browser control |
+| [`@qwerzl/pi-browser`](packages/browser) | Native cmux browser control and a browser-harness skill for Chrome |
 
 ```text
 packages/
@@ -130,11 +130,9 @@ Naming uses one small background request to the active model per completed reply
 
 ## Personal browser tools
 
-The [browser package](packages/browser) uses a private copy of the installed Codex browser runtime, not live files in the app bundle. Updating the app does not replace that copy. The existing Codex Chrome extension and its native messaging host are still required and can change independently.
+The [browser package](packages/browser) registers `cmux_browser` for native embedded WebKit control and includes a browser-harness skill for Chrome. Install browser-harness separately and configure its upstream MCP server as described in the package README. Neither backend uses an OpenAI browser runtime or requires its Chrome extension.
 
-It exposes `browser_js`, `browser_reset`, and `cmux_browser`. Browser permissions go through Pi dialogs; unknown approval forms and headless approval requests fail closed. No extra model is called. See the package README for the one-time copy and installation steps.
-
-The copied runtime stays outside this repository, under `~/.pi/agent/browser-runtime`. It is not included in Git/npm or covered by this project's MIT license. The browser package is marked private.
+Chrome requires user-enabled remote debugging and manual connection approval. Access is browser-wide, not approved per website; its background daemon and tabs are not automatically cleaned up at Pi turn end. Local recordings are opt-in and can contain sensitive page content. Browser-harness cannot control cmux's WebKit pane, which uses the native CLI independently.
 
 ## Model connection retries
 

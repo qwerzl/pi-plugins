@@ -7,7 +7,7 @@ import { Type } from '@earendil-works/pi-ai'
 
 function validateRequest(action: string, surface: string | undefined, args: string[], owned: Set<string>): void {
   if (!process.env.CMUX_WORKSPACE_ID)
-    throw new Error('Run pi inside cmux to use its embedded browser. Use browser_js for Chrome instead.')
+    throw new Error('Run pi inside cmux to use its embedded browser. Use browser-harness for Chrome instead.')
   if (!['open', 'help'].includes(action) && !surface)
     throw new Error('An explicit browser surface is required.')
   if (action === 'close' && !owned.has(surface || ''))
