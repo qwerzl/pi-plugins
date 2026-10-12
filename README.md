@@ -20,6 +20,7 @@ The main `typescript` dependency is held at 6.0 for ESLint compatibility. Effect
 | --- | --- |
 | [`@qwerzl/pi-codexcont`](packages/codexcont) | Bounded reasoning continuation for OpenAI Responses providers, without a proxy server |
 | [`@qwerzl/pi-auto-title`](packages/auto-title) | Short emoji-first session titles that update as the topic changes |
+| [`@qwerzl/pi-codex-retry`](packages/codex-retry) | Codex-style retries for failed model responses, without hidden continuation messages |
 
 ```text
 packages/
@@ -125,6 +126,12 @@ pi install ./packages/auto-title
 Restart pi. After each completed reply, it generates a short emoji-first title (for example, `🏷️ Auto titles` or `🔐 Fix login`) and updates it only when the topic changes. Pi persists the name and includes it in the terminal title and session selector. A manual `/name` takes precedence.
 
 Naming uses one small background request to the active model per completed reply, with no requested thinking and a 15-second timeout. Provider billing applies; see the package README for context and usage-accounting limits.
+
+## Model connection retries
+
+The [codex-retry package](packages/codex-retry) applies Codex CLI 0.154.0's outer retry policy to failed Pi model responses. It does not replace providers or reproduce Codex's transport implementation.
+
+Before using it, follow the package's setup instructions to disable Pi's native retries. Otherwise, the package stays inactive to prevent stacked retry loops. Removing it requires restoring native retries. Disabling native retries also disables them for compaction and summaries.
 
 ## Add a plugin
 
