@@ -9,7 +9,7 @@
   "repository": "https://github.com/qwerzl/pi-plugins",
   "keywords": ["pi-package"],
   "engines": { "node": ">=22.19.0" },
-  "pi": { "extensions": ["./packages/codexcont/src/index.ts", "./packages/auto-title/src/index.ts"] },
+  "pi": { "extensions": ["./packages/codexcont/src/index.ts", "./packages/auto-title/src/index.ts", "./packages/codex-retry/src/index.ts"] },
   "scripts": {
     "lint": "eslint . --cache",
     "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.tools.json && nx run-many -t typecheck",
