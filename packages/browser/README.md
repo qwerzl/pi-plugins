@@ -50,7 +50,7 @@ PY
 
 Create the blank tab explicitly: in 0.1.13, `new_tab(url)` can reuse a user's existing blank tab. Retain the exact target ID and close only tabs created for the task.
 
-`cmux_browser` supports open, navigate, snapshot, click, fill, press, scroll, get, wait, eval, screenshot, help, and close. It requires Pi inside cmux, explicit surface IDs for existing panes, and can close only surfaces it opened in that extension session. It returns screenshots as images. Reload loses the ownership list and leaves existing panes alone.
+`cmux_browser` supports open, navigate, snapshot, click, fill, press, scroll, get, wait, eval, screenshot, help, and close. It requires Pi inside cmux, explicit surface IDs for existing panes, and can close only surfaces it opened in that extension session. Open accepts one optional URL, with no surface or CLI options; use navigate for an existing pane. It returns screenshots as images. Reload loses the ownership list and leaves existing panes alone.
 
 The cmux backend is the regular CLI, not its richer JavaScript REPL. This avoids the missing `browser-repl/manifest.json` in the installed cmux 0.65.0 build. It neither patches nor relaunches cmux.
 

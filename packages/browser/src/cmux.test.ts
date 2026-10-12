@@ -23,6 +23,18 @@ it('requires cmux and explicit surfaces, and cannot close unrelated panes', asyn
   expect(h.exec).not.toHaveBeenCalled()
 })
 
+it.each([
+  { surface: 'surface:42', args: ['https://example.com'] },
+  { args: ['--surface', 'surface:42', 'https://example.com'] },
+  { args: ['--surface=surface:42'] },
+  { args: ['https://example.com', '--workspace', 'workspace:2'] },
+])('rejects open selectors and CLI options before execution: %j', async (args) => {
+  const h = harness()
+  await expect(h.run({ action: 'open', ...args })).rejects.toThrow('open creates a new pane')
+  await expect(h.run({ action: 'close', surface: 'surface:42' })).rejects.toThrow('Only browser panes')
+  expect(h.exec).not.toHaveBeenCalled()
+})
+
 it('passes argument arrays without a shell and tracks only panes it opens', async () => {
   const h = harness()
   await h.run({ action: 'open', args: ['https://example.com'] })
