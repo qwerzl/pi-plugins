@@ -1,4 +1,4 @@
-/* global Button, ForEach, HStack, Image, Spacer, Text, VStack, cmux, computed, data, sidebar, signal */
+/* global Button, Circle, Divider, ForEach, HStack, Image, Menu, Spacer, Text, TextField, VStack, cmux, computed, data, sidebar, signal */
 // The TS-backed unused-imports rule misreads Espree references; core no-unused-vars still checks this script.
 /* eslint unused-imports/no-unused-vars: off */
 
@@ -40,9 +40,14 @@ function groupConversations(workspaces, groups) {
       projects.set(key, {
         key,
         title: group?.name || directory.split('/').pop() || 'Other conversations',
+        groupId: group?.id,
+        color: group?.color,
+        directory,
+        workspaceIds: [],
         conversations: [],
       })
     }
+    projects.get(key).workspaceIds.push(workspace.id)
     const latest = latestSessions(workspace.agents || [])
     const conversations = projects.get(key).conversations
     for (const agent of latest.values()) {
@@ -53,6 +58,7 @@ function groupConversations(workspaces, groups) {
         surfaceId: agent.surfaceId || tab?.surfaceId,
         title: conversationTitle(workspace, agent, tab, latest.size),
         state: STATES[agent.status] || STATES.unknown,
+        unread: tab?.hasUnread ?? (latest.size === 1 && workspace.unread > 0),
         lastActivityAt: agent.lastActivityAt ?? tab?.latestAt ?? 0,
         selected: workspace.selected && (tab ? tab.focused : latest.size === 1),
       })
@@ -63,6 +69,7 @@ function groupConversations(workspaces, groups) {
         workspaceId: workspace.id,
         title: workspace.title || 'Terminal',
         state: STATES.terminal,
+        unread: workspace.unread > 0,
         lastActivityAt: workspace.latestAt ?? 0,
         selected: workspace.selected,
       })
@@ -89,17 +96,66 @@ function jump(conversation) {
 
 const projects = computed(() => groupConversations(data.workspaces() || [], data.groups() || []))
 
+function colorMenu(setColor) {
+  const colors = { Red: '#E06C75', Orange: '#D99A5E', Yellow: '#E5C07B', Green: '#98C379', Blue: '#61AFEF', Purple: '#C678DD', Pink: '#E58AB5', Gray: '#9DA5B4' }
+  return Menu('Color Label', [
+    ...Object.entries(colors).map(([name, hex]) => Button(name, () => setColor(hex))),
+    Divider(),
+    Button('None', () => setColor(null)),
+  ])
+}
+
+function projectMenu(project, rename, toggleCollapse) {
+  const groupId = project().groupId
+  return [
+    Button('New Workspace', () => cmux('workspace.create', {
+      cwd: project().directory,
+      focus: true,
+      ...(groupId ? { group_id: groupId } : {}),
+    })),
+    Button(groupId ? 'Rename Project…' : 'Save as Project…', rename),
+    ...(groupId
+      ? [colorMenu(hex => cmux('workspace.group.set_color', { group_id: groupId, ...(hex ? { hex } : {}) })), Divider(), Button('Ungroup (Keep Workspaces)', () => cmux('workspace.group.ungroup', { group_id: groupId }))]
+      : []),
+    Divider(),
+    Button('Expand / Collapse', toggleCollapse),
+  ]
+}
+
+function workspaceMenu(workspace, setMode) {
+  const act = (action, params = {}) => {
+    if (workspace())
+      cmux('workspace.action', { workspace_id: workspace().id, action, ...params })
+  }
+  return [
+    Button('Rename Workspace…', () => setMode('rename')),
+    Button('Reset Workspace Name', () => act('clear_name')),
+    colorMenu(hex => act(hex ? 'set_color' : 'clear_color', hex ? { color: hex } : {})),
+    Button(() => workspace()?.pinned ? 'Unpin Workspace' : 'Pin Workspace', () => act(workspace()?.pinned ? 'unpin' : 'pin')),
+    Button(() => workspace()?.unread ? 'Mark as Read' : 'Mark as Unread', () => act(workspace()?.unread ? 'mark_read' : 'mark_unread')),
+    Divider(),
+    Button('Close Workspace…', () => setMode('close')).destructive(),
+  ]
+}
+
 function conversationRow(item) {
-  return Button('', () => jump(item()), [HStack({ spacing: 7 }, [
-    Text(() => item().title).font(13).lineLimit(1).truncation('tail').color('primary'),
+  const [mode, setMode] = signal(null)
+  const workspace = () => (data.workspaces() || []).find(workspace => workspace.id === item().workspaceId)
+  const row = HStack({ spacing: 7 }, [
+    ForEach({ items: () => workspace()?.color ? [workspace().color] : [], key: color => color }, color => Circle({ size: 6 }).fill(color)),
+    // Keep native keyboard activation while the outer row supplies cmux's full-rectangle hit target.
+    Button('', () => jump(item()), [
+      Text(() => item().title).font(13).lineLimit(1).truncation('tail').color('primary'),
+    ]).frame({ maxWidth: 'infinity', alignment: 'leading' }).layoutPriority(1),
     Spacer({ minLength: 0 }),
     Text(() => `${item().state.symbol} ${item().state.label}`)
       .font(10)
       .color(() => item().state.color)
       .fixedSize()
       .layoutPriority(2),
-  ])])
-    .help(() => `${item().title} (${item().state.label})`)
+    ForEach({ items: () => item().unread ? ['unread'] : [], key: key => key }, () => Circle({ size: 7 }).fill('blue').help('Unread update')),
+  ])
+    .help(() => `${item().title} (${item().state.label}${item().unread ? ', unread update' : ''})`)
     .paddingLeading(32)
     .paddingTrailing(10)
     .paddingVertical(9)
@@ -107,14 +163,47 @@ function conversationRow(item) {
     .background(() => item().selected ? '#7f7f7f30' : null)
     .cornerRadius(10)
     .hoverBackground('#7f7f7f20')
+    .onTap(() => jump(item()))
+    .contextMenu(workspaceMenu(workspace, setMode))
+
+  return VStack({ spacing: 2 }, [
+    row,
+    ForEach({ items: () => mode() ? [mode()] : [], key: mode => mode }, (editing) => {
+      if (editing() === 'rename') {
+        return TextField(() => workspace()?.title || '', {
+          placeholder: 'Workspace name',
+          onSubmit: (text) => {
+            const title = text.trim()
+            if (title && workspace())
+              cmux('workspace.action', { workspace_id: workspace().id, action: 'rename', title })
+            setMode(null)
+          },
+          onCancel: () => setMode(null),
+        }).font(13).paddingLeading(32).paddingTrailing(10)
+      }
+      return VStack({ spacing: 6 }, [
+        Text(() => `Close “${workspace()?.title || item().title}”? All terminals in this workspace will close. Running work may be lost.`).font(12),
+        HStack({ spacing: 12 }, [
+          Button('Cancel', () => setMode(null)),
+          Button('Close Workspace', () => {
+            if (workspace())
+              cmux('workspace.close', { workspace_id: workspace().id })
+            setMode(null)
+          }).destructive(),
+        ]),
+      ]).paddingHorizontal(10).paddingVertical(8)
+    }),
+  ])
 }
 
 function projectSection(project) {
   const [collapsed, setCollapsed] = signal(false)
   const [expanded, setExpanded] = signal(false)
+  const [renaming, setRenaming] = signal(false)
+  const toggleCollapse = () => setCollapsed(!collapsed())
   return VStack({ spacing: 2 }, [
-    Button('', () => setCollapsed(!collapsed()), [HStack({ spacing: 9 }, [
-      Image('folder').font(15).color('primary'),
+    Button('', toggleCollapse, [HStack({ spacing: 9 }, [
+      Image('folder').font(15).color(() => project().color || 'primary'),
       Text(() => project().title).font(14).weight('medium').lineLimit(1).truncation('tail'),
       Spacer({ minLength: 0 }),
       Image('chevron.right').font(9).color('secondary').rotation(() => collapsed() ? 0 : 90),
@@ -124,7 +213,22 @@ function projectSection(project) {
       .paddingVertical(9)
       .frame({ maxWidth: 'infinity' })
       .cornerRadius(8)
-      .hoverBackground('#7f7f7f18'),
+      .hoverBackground('#7f7f7f18')
+      .contextMenu(projectMenu(project, () => setRenaming(true), toggleCollapse)),
+    ForEach({ items: () => renaming() ? ['rename'] : [], key: item => item }, () => TextField(() => project().title, {
+      placeholder: 'Project name',
+      onSubmit: (text) => {
+        const name = text.trim()
+        if (name) {
+          if (project().groupId)
+            cmux('workspace.group.rename', { group_id: project().groupId, name })
+          else
+            cmux('workspace.group.create', { name, cwd: project().directory, child_workspace_ids: JSON.stringify(project().workspaceIds) })
+        }
+        setRenaming(false)
+      },
+      onCancel: () => setRenaming(false),
+    }).font(14).paddingHorizontal(10)),
     ForEach({
       items: () => collapsed() ? [] : visibleItems(project().conversations, expanded()),
       key: item => item.key,

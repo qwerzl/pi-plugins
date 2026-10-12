@@ -20,6 +20,7 @@ The main `typescript` dependency is held at 6.0 for ESLint compatibility. Effect
 | --- | --- |
 | [`@qwerzl/pi-codexcont`](packages/codexcont) | Bounded reasoning continuation for OpenAI Responses providers, without a proxy server |
 | [`@qwerzl/pi-auto-title`](packages/auto-title) | Short emoji-first session titles that update as the topic changes |
+| [`@qwerzl/pi-codex-retry`](packages/codex-retry) | Codex-style retries for failed model responses, without hidden continuation messages |
 | [`@qwerzl/pi-browser`](packages/browser) | Personal Chrome browser tools using a pinned local Codex runtime, plus cmux browser control |
 
 ```text
@@ -134,6 +135,12 @@ The [browser package](packages/browser) uses a private copy of the installed Cod
 It exposes `browser_js`, `browser_reset`, and `cmux_browser`. Browser permissions go through Pi dialogs; unknown approval forms and headless approval requests fail closed. No extra model is called. See the package README for the one-time copy and installation steps.
 
 The copied runtime stays outside this repository, under `~/.pi/agent/browser-runtime`. It is not included in Git/npm or covered by this project's MIT license. The browser package is marked private.
+
+## Model connection retries
+
+The [codex-retry package](packages/codex-retry) applies Codex CLI 0.154.0's outer retry policy to failed Pi model responses. It does not replace providers or reproduce Codex's transport implementation.
+
+Before using it, follow the package's setup instructions to disable Pi's native retries. Otherwise, the package stays inactive to prevent stacked retry loops. Removing it requires restoring native retries. Disabling native retries also disables them for compaction and summaries.
 
 ## Add a plugin
 
