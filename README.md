@@ -21,6 +21,7 @@ The main `typescript` dependency is held at 6.0 for ESLint compatibility. Effect
 | [`@qwerzl/pi-codexcont`](packages/codexcont) | Bounded reasoning continuation for OpenAI Responses providers, without a proxy server |
 | [`@qwerzl/pi-auto-title`](packages/auto-title) | Short emoji-first session titles that update as the topic changes |
 | [`@qwerzl/pi-codex-retry`](packages/codex-retry) | Codex-style retries for failed model responses, without hidden continuation messages |
+| [`@qwerzl/pi-browser`](packages/browser) | Native cmux browser control and a browser-harness skill for Chrome |
 
 ```text
 packages/
@@ -126,6 +127,12 @@ pi install ./packages/auto-title
 Restart pi. After each completed reply, it generates a short emoji-first title (for example, `🏷️ Auto titles` or `🔐 Fix login`) and updates it only when the topic changes. Pi persists the name and includes it in the terminal title and session selector. A manual `/name` takes precedence.
 
 Naming uses one small background request to the active model per completed reply, with no requested thinking and a 15-second timeout. Provider billing applies; see the package README for context and usage-accounting limits.
+
+## Personal browser tools
+
+The [browser package](packages/browser) registers `cmux_browser` for native embedded WebKit control and includes a browser-harness skill for Chrome. Install browser-harness separately and configure its upstream MCP server as described in the package README. Neither backend uses an OpenAI browser runtime or requires its Chrome extension.
+
+Chrome requires user-enabled remote debugging and manual connection approval. Access is browser-wide, not approved per website; its background daemon and tabs are not automatically cleaned up at Pi turn end. Local recordings are opt-in and can contain sensitive page content. Browser-harness cannot control cmux's WebKit pane, which uses the native CLI independently.
 
 ## Model connection retries
 
