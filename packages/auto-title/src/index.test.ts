@@ -57,7 +57,8 @@ function harness(manager = SessionManager.inMemory()) {
   const appendEntry = vi.fn((type: string, data?: unknown) => manager.appendCustomEntry(type, data))
   const registry: Partial<ModelRegistry> = { streamSimple }
   const setTitle = vi.fn()
-  const ui: Partial<ExtensionContext['ui']> = { setTitle }
+  const notify = vi.fn()
+  const ui: Partial<ExtensionContext['ui']> = { setTitle, notify }
   const ctx: Partial<ExtensionContext> = { hasUI: true, model, sessionManager: manager, modelRegistry: registry as ModelRegistry, ui: ui as ExtensionContext['ui'] }
   const api: Partial<ExtensionAPI> = {
     on: (event: string, handler: unknown) => {
@@ -83,7 +84,7 @@ function harness(manager = SessionManager.inMemory()) {
   cleanups.push(() => {
     fire({ type: 'session_shutdown', reason: 'quit' })
   })
-  return { manager, result, streamSimple, setSessionName, setTitle, appendEntry, ctx, fire, exchange }
+  return { manager, result, streamSimple, setSessionName, setTitle, notify, appendEntry, ctx, fire, exchange }
 }
 
 function deferredReply() {
@@ -101,7 +102,7 @@ async function flush() {
 const settled = { type: 'agent_settled', aborted: false } as const
 
 describe('automatic session titles', () => {
-  it('names in the background using the active model without reasoning or tools', async () => {
+  it('names in the background using low reasoning for reasoning models and no tools', async () => {
     const h = harness()
     h.exchange()
     expect(h.fire(settled)).toBeUndefined()
@@ -113,8 +114,30 @@ describe('automatic session titles', () => {
     expect(selected).toBe(model)
     expect(context.systemPrompt).toContain('one emoji followed by 2–5 simple words')
     expect(context.tools).toBeUndefined()
-    expect(options).toMatchObject({ maxTokens: 64, signal: expect.any(AbortSignal) })
+    expect(options).toMatchObject({ maxTokens: 1024, reasoning: 'low', signal: expect.any(AbortSignal) })
+  })
+
+  it('keeps reasoning disabled and the small output budget for non-reasoning models', async () => {
+    const h = harness()
+    h.ctx.model = { ...model, reasoning: false }
+    h.exchange()
+    h.fire(settled)
+    await flush()
+    const options = h.streamSimple.mock.calls[0][2]
     expect(options?.reasoning).toBeUndefined()
+    expect(options?.maxTokens).toBe(64)
+  })
+
+  it('works with a provider that rejects disabled reasoning', async () => {
+    const h = harness()
+    h.result.mockImplementation(async () => h.streamSimple.mock.lastCall?.[2]?.reasoning
+      ? reply('🏷️ Fixed titles')
+      : { ...reply(''), stopReason: 'error', errorMessage: 'Unsupported value: none' })
+    h.exchange()
+    h.fire(settled)
+    await flush()
+    expect(h.manager.getSessionName()).toBe('🏷️ Fixed titles')
+    expect(h.notify).not.toHaveBeenCalled()
   })
 
   it('updates mid-session and avoids writing unchanged names', async () => {
@@ -190,6 +213,7 @@ describe('automatic session titles', () => {
     pending.resolve(reply('🏷️ Stale title'))
     await flush()
     expect(h.setSessionName).not.toHaveBeenCalled()
+    expect(h.notify).not.toHaveBeenCalled()
   })
 
   it('only includes bounded recent text, not tool results or hidden thinking', async () => {
@@ -224,16 +248,20 @@ describe('automatic session titles', () => {
     expect(h.manager.getSessionName()).toBe(expected)
   })
 
-  it.each(['empty', 'error', 'reject'] as const)('leaves the title alone for %s responses', async (kind) => {
+  it.each(['empty', 'error', 'length', 'reject'] as const)('leaves the title alone and warns once for %s responses', async (kind) => {
     const h = harness()
     if (kind === 'reject')
       h.result.mockRejectedValue(new Error('offline'))
     else
-      h.result.mockResolvedValue({ ...reply(kind === 'empty' ? '  ' : 'partial'), stopReason: kind === 'error' ? 'error' : 'stop' })
+      h.result.mockResolvedValue({ ...reply(kind === 'empty' ? '  ' : 'partial'), stopReason: kind === 'empty' ? 'stop' : kind })
     h.exchange()
     h.fire(settled)
     await flush()
     expect(h.setSessionName).not.toHaveBeenCalled()
+    expect(h.notify).toHaveBeenCalledWith(expect.stringContaining('Auto-title'), 'warning')
+    h.fire(settled)
+    await flush()
+    expect(h.notify).toHaveBeenCalledTimes(1)
   })
 
   it('aborts a request after 15 seconds', async () => {
@@ -246,6 +274,7 @@ describe('automatic session titles', () => {
     await vi.advanceTimersByTimeAsync(15_001)
     expect(h.streamSimple.mock.calls[0][2]?.signal?.aborted).toBe(true)
     expect(h.setSessionName).not.toHaveBeenCalled()
+    expect(h.notify).toHaveBeenCalledWith(expect.stringContaining('Auto-title'), 'warning')
   })
 
   it.each(['aborted', 'failed', 'headless'] as const)('skips %s runs', async (kind) => {
