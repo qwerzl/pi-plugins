@@ -58,6 +58,7 @@ function groupConversations(workspaces, groups) {
         surfaceId: agent.surfaceId || tab?.surfaceId,
         title: conversationTitle(workspace, agent, tab, latest.size),
         state: STATES[agent.status] || STATES.unknown,
+        unread: tab?.hasUnread ?? (latest.size === 1 && workspace.unread > 0),
         lastActivityAt: agent.lastActivityAt ?? tab?.latestAt ?? 0,
         selected: workspace.selected && (tab ? tab.focused : latest.size === 1),
       })
@@ -68,6 +69,7 @@ function groupConversations(workspaces, groups) {
         workspaceId: workspace.id,
         title: workspace.title || 'Terminal',
         state: STATES.terminal,
+        unread: workspace.unread > 0,
         lastActivityAt: workspace.latestAt ?? 0,
         selected: workspace.selected,
       })
@@ -151,8 +153,9 @@ function conversationRow(item) {
       .color(() => item().state.color)
       .fixedSize()
       .layoutPriority(2),
+    ForEach({ items: () => item().unread ? ['unread'] : [], key: key => key }, () => Circle({ size: 7 }).fill('blue').help('Unread update')),
   ])
-    .help(() => `${item().title} (${item().state.label})`)
+    .help(() => `${item().title} (${item().state.label}${item().unread ? ', unread update' : ''})`)
     .paddingLeading(32)
     .paddingTrailing(10)
     .paddingVertical(9)
