@@ -67,6 +67,18 @@ it.each(['session_shutdown', 'session_start', 'session_tree'])('closes state on 
   expect(mocks.created).toHaveBeenCalledTimes(2)
 })
 
+it.each(['session_shutdown', 'session_start', 'session_tree'])('reports process shutdown failures during %s and allows an explicit retry', async (event) => {
+  const h = harness()
+  await h.run()
+  mocks.close.mockRejectedValueOnce(new Error('transport shutdown failed'))
+  await h.fire(event)
+  expect(h.ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining('Browser shutdown failed; use browser_reset'), 'error')
+  await h.run('browser_reset')
+  expect(mocks.close).toHaveBeenCalledTimes(2)
+  await h.run()
+  expect(mocks.created).toHaveBeenCalledTimes(2)
+})
+
 it('reports a successful reset with a warning when only turn cleanup failed', async () => {
   const h = harness()
   await h.run()

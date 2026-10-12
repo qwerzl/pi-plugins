@@ -184,6 +184,8 @@ describe('pinned browser session', () => {
     await session.execute('code', 'test', 1000, context().ctx)
     mocks.close.mockRejectedValueOnce(new Error('transport shutdown failed'))
     await expect(session.close()).rejects.toThrow('transport shutdown failed')
+    await expect(session.execute('next conversation', 'test', 1000, context().ctx)).rejects.toThrow('browser_reset')
+    expect(mocks.callTool).toHaveBeenCalledTimes(2)
     await expect(session.close()).resolves.toBeUndefined()
     expect(mocks.close).toHaveBeenCalledTimes(2)
   })

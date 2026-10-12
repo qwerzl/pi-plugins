@@ -21,9 +21,14 @@ export default function browser(pi: ExtensionAPI): void {
     return stopping
   }
   const resetSession = async (_event: unknown, ctx: ExtensionContext): Promise<void> => {
-    const warning = await reset()
-    if (warning)
-      ctx.ui.notify(warning, 'warning')
+    try {
+      const warning = await reset()
+      if (warning)
+        ctx.ui.notify(warning, 'warning')
+    }
+    catch (error) {
+      ctx.ui.notify(`Browser shutdown failed; use browser_reset before continuing. ${String(error)}`, 'error')
+    }
   }
   pi.on('session_shutdown', resetSession)
   pi.on('session_start', resetSession)

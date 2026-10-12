@@ -46,7 +46,7 @@ export class BrowserSession {
   private turnId: string | undefined
   private context: BrowserContext | undefined
   private operationSignal: AbortSignal | undefined
-  private cleanupFailed = false
+  private resetRequired = false
 
   private readonly directory: string
 
@@ -99,8 +99,8 @@ export class BrowserSession {
 
   execute(code: string, title: string, timeout: number, ctx: BrowserContext, signal?: AbortSignal): Promise<CallToolResult> {
     return this.serial(async (operationSignal) => {
-      if (this.cleanupFailed)
-        throw new Error('Browser turn cleanup failed. Use browser_reset before continuing; some browser tabs may still be open.')
+      if (this.resetRequired)
+        throw new Error('Browser cleanup failed or shutdown started. Use browser_reset before continuing; some browser tabs may still be open.')
       this.context = ctx
       this.operationSignal = operationSignal
       try {
@@ -133,7 +133,7 @@ export class BrowserSession {
       this.turnId = undefined
     }
     catch (error) {
-      this.cleanupFailed = true
+      this.resetRequired = true
       throw error
     }
   }
@@ -144,6 +144,7 @@ export class BrowserSession {
 
   close(): Promise<string | undefined> {
     return this.serial(async () => {
+      this.resetRequired = true
       let warning: string | undefined
       try {
         await this.endTurn('Interrupt')
