@@ -121,6 +121,58 @@ describe('cmux project conversations', () => {
     expect(evaluate(projection)).toEqual([])
   })
 
+  it('uses per-terminal unread state without marking sibling conversations unread', () => {
+    const [project] = evaluate(projection, [{
+      ...workspace,
+      unread: 1,
+      agents: [agent, { ...agent, id: 'other', panelId: 'other-panel', surfaceId: 'other-surface' }],
+      tabs: [
+        { ...workspace.tabs[0], hasUnread: true },
+        { id: 'other-panel', surfaceId: 'other-surface', hasUnread: false },
+      ],
+    }])
+    expect(project.conversations.map((row: { unread: boolean }) => row.unread)).toEqual([true, false])
+    const [read] = evaluate(projection, [{ ...workspace, unread: 1, tabs: [{ ...workspace.tabs[0], hasUnread: false }] }])
+    expect(read.conversations[0].unread).toBe(false)
+  })
+
+  it('falls back to workspace unread state only when it can identify a single row', () => {
+    expect(evaluate(projection, [{ ...workspace, unread: 1 }])[0].conversations[0].unread).toBe(true)
+    expect(evaluate(projection, [workspace])[0].conversations[0].unread).toBe(false)
+    const [multiple] = evaluate(projection, [{
+      ...workspace,
+      unread: 1,
+      tabs: [],
+      agents: [agent, { ...agent, id: 'other', panelId: 'other-panel' }],
+    }])
+    expect(multiple.conversations.map((row: { unread: boolean }) => row.unread)).toEqual([false, false])
+    expect(evaluate(projection, [{ id: 'terminal', unread: 1 }])[0].conversations[0].unread).toBe(true)
+  })
+
+  it.skipIf(!existsSync(runtimePath))('keeps an unread dot through completion status changes until cmux clears it', () => {
+    const ui = renderSidebar([workspace])
+    const dots = () => [...ui.nodes.values()].filter(node => node.type === 'circle' && node.help === 'Unread update')
+    expect(dots()).toHaveLength(0)
+    for (const [status, label] of [['needs_input', 'Needs you'], ['idle', 'Idle'], ['working', 'Working']]) {
+      ui.context.__setData('workspaces', JSON.stringify([{
+        ...workspace,
+        agents: [{ ...agent, status }],
+        tabs: [{ ...workspace.tabs[0], hasUnread: true }],
+      }]))
+      expect(dots()).toHaveLength(1)
+      expect(dots()[0]).toMatchObject({ fill: 'blue', size: 7 })
+      expect(ui.find(node => node.help === `Fix the tests (${label}, unread update)`)).toBeDefined()
+    }
+    expect(ui.calls).toEqual([])
+    ui.context.__setData('workspaces', JSON.stringify([{
+      ...workspace,
+      agents: [{ ...agent, status: 'idle' }],
+      tabs: [{ ...workspace.tabs[0], hasUnread: false }],
+    }]))
+    expect(dots()).toHaveLength(0)
+    expect(ui.find(node => node.help === 'Fix the tests (Idle)')).toBeDefined()
+  })
+
   it('shows the first five sessions or projects without promoting an older selection', () => {
     const rows = Array.from({ length: 8 }, (_, i) => ({ key: String(i), selected: i === 7 }))
     expect(evaluate('visibleItems(fixtures, false)', rows)).toEqual(rows.slice(0, 5))
@@ -247,7 +299,7 @@ describe('cmux project conversations', () => {
     }
     expect(ui.calls).toEqual([])
     ui.context.__setData('workspaces', JSON.stringify([{ ...workspace, group: 'project', title: 'New title', color: '#C678DD', pinned: true, unread: 1 }]))
-    expect(ui.find(node => node.help === 'New title (Working)')).toBeDefined()
+    expect(ui.find(node => node.help === 'New title (Working, unread update)')).toBeDefined()
     expect(ui.find(node => node.type === 'circle' && node.fill === '#C678DD')).toBeDefined()
     ui.click('Unpin Workspace')
     ui.click('Mark as Read')
