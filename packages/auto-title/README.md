@@ -24,11 +24,11 @@ The current title and at most four recent user/assistant text messages (1,200 ch
 
 The session name is persisted through pi's normal API for `/resume`. The terminal receives just the short emoji title, without pi's usual `π - … - Projects` wrapper; this also lets the cmux Projects sidebar display it rather than falling back to the latest prompt. No separate shell hook is required. Existing unnamed sessions get a title after their next successful reply. Generated names keep updating after resume/reload.
 
-A manual `/name` takes precedence, including if you rename while a request is in flight. A new reply or session shutdown cancels stale title requests. Failures and the 15-second timeout leave the existing title alone. Print/headless runs and aborted or failed replies do not trigger naming.
+A manual `/name` takes precedence, including if you rename while a request is in flight. A new reply or session shutdown cancels stale title requests. Failures and the 15-second timeout leave the existing title alone. The extension shows one warning per session load if title generation fails, then tries again after the next completed reply. Canceled requests do not warn. Print/headless runs and aborted or failed replies do not trigger naming.
 
 ## Cost and privacy
 
-Each eligible completed reply makes **one extra background request**, capped at 64 output tokens with no requested thinking and no tools. This does not add messages to the main conversation or change its model/settings. Normal provider billing applies; the extra request's usage is **not added to pi's main conversation token totals**.
+Each eligible completed reply makes **one extra background request** with no tools. Reasoning models use `low` thinking and a 1,024-token output budget, which also covers thinking. This avoids asking reasoning-only models to disable thinking, which some providers reject. Non-reasoning models keep the 64-token output budget with no requested thinking. This does not add messages to the main conversation or change its model/settings. Normal provider billing applies; the extra request's usage is **not added to pi's main conversation token totals**.
 
 Names are visible in terminal tabs and session lists. Although the model is instructed not to include secrets or personal information, that is not a redaction guarantee. Assign a manual generic name before discussing sensitive material if it must not influence the title.
 

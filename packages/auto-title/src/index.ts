@@ -24,9 +24,11 @@ function cleanTitle(text: string): string {
 export default function autoTitle(pi: ExtensionAPI): void {
   let ownedTitle: string | undefined
   let request: AbortController | undefined
+  let warned = false
 
   pi.on('session_start', (_event, ctx) => {
     request?.abort()
+    warned = false
     const entry = ctx.sessionManager.getEntries().findLast(entry => entry.type === 'custom' && entry.customType === stateKey)
     ownedTitle = entry?.type === 'custom' && typeof entry.data === 'string' ? entry.data : undefined
     if (ctx.hasUI && ownedTitle && pi.getSessionName() === ownedTitle)
@@ -66,6 +68,12 @@ export default function autoTitle(pi: ExtensionAPI): void {
     request?.abort()
     const controller = new AbortController()
     request = controller
+    const warn = (): void => {
+      if (controller.signal.aborted || pi.getSessionName() !== currentTitle || warned)
+        return
+      warned = true
+      ctx.ui.notify('Auto-title could not generate a title. It will retry after the next completed reply.', 'warning')
+    }
     Effect.runFork(
       Effect.tryPromise(signal => ctx.modelRegistry.streamSimple(model, {
         systemPrompt: instruction,
@@ -74,14 +82,21 @@ export default function autoTitle(pi: ExtensionAPI): void {
           content: `Current title: ${currentTitle || '(none)'}\n\n${excerpt}`,
           timestamp: Date.now(),
         }],
-      }, { signal, maxTokens: 64 }).result()).pipe(
+      }, {
+        signal,
+        // Reasoning-only models reject "none"; leave room for thinking as well as the title.
+        reasoning: model.reasoning ? 'low' : undefined,
+        maxTokens: model.reasoning ? 1024 : 64,
+      }).result()).pipe(
         Effect.timeout('15 seconds'),
         Effect.tap(response => Effect.sync(() => {
-          if (controller.signal.aborted || pi.getSessionName() !== currentTitle || response.stopReason !== 'stop')
+          if (controller.signal.aborted || pi.getSessionName() !== currentTitle)
             return
           const title = cleanTitle(response.content.filter(block => block.type === 'text').map(block => block.text).join(''))
-          if (!title)
+          if (response.stopReason !== 'stop' || !title) {
+            warn()
             return
+          }
           if (title !== currentTitle) {
             ownedTitle = title
             pi.setSessionName(title)
@@ -91,7 +106,7 @@ export default function autoTitle(pi: ExtensionAPI): void {
           ctx.ui.setTitle(title)
         })),
         // Naming is best-effort; an unavailable model must not interrupt the conversation.
-        Effect.ignoreCause,
+        Effect.catchCause(() => Effect.sync(warn)),
       ),
       { signal: controller.signal },
     )
