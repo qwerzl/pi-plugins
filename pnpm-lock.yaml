@@ -15,6 +15,9 @@ catalogs:
     '@earendil-works/pi-coding-agent':
       specifier: 1.1.0
       version: 1.1.0
+    '@earendil-works/pi-tui':
+      specifier: 1.1.0
+      version: 1.1.0
     '@effect/tsgo':
       specifier: 0.51.1
       version: 0.51.1
@@ -70,6 +73,9 @@ importers:
       '@antfu/eslint-config':
         specifier: catalog:dev
         version: 9.5.1(@typescript-eslint/typescript-estree@8.71.1(supports-color@7.2.0)(typescript@6.0.3))(@typescript-eslint/utils@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3))(@vue/compiler-sfc@3.5.43)(eslint-plugin-slop@0.1.3(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0)))(eslint-plugin-sonarjs@4.2.2(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0)))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)(vitest@5.0.3(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)))
+      '@earendil-works/pi-tui':
+        specifier: catalog:dev
+        version: 1.1.0
       '@effect/tsgo':
         specifier: catalog:dev
         version: 0.51.1
@@ -119,6 +125,18 @@ importers:
       '@earendil-works/pi-coding-agent':
         specifier: catalog:dev
         version: 1.1.0(@aws-sdk/credential-provider-node@3.972.85)(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5)
+      vitest:
+        specifier: catalog:dev
+        version: 5.0.3(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/cmux-panel:
+    devDependencies:
+      '@earendil-works/pi-coding-agent':
+        specifier: catalog:dev
+        version: 1.1.0(@aws-sdk/credential-provider-node@3.972.85)(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5)
+      '@earendil-works/pi-tui':
+        specifier: catalog:dev
+        version: 1.1.0
       vitest:
         specifier: catalog:dev
         version: 5.0.3(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))

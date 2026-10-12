@@ -25,6 +25,44 @@ cmux sidebar select projects
 
 Edit the repository copy, then copy it to the same destination again. cmux reloads the installed file when it changes. To switch back, right-click the sidebar toggle and choose another sidebar.
 
+## Live plan panel (right side)
+
+The plan panel sits directly to the right of its Pi conversation in a narrow terminal split, not the shared Dock. The installed Pi extension opens it automatically when an interactive conversation starts in cmux. It opens at about 40 columns wide. Drag the divider to resize it. The Projects sidebar stays on the left.
+
+The panel follows its conversation, not the selected workspace or terminal. It is read-only and does not add a web server or model call. When a top-level Pi `Agent` subagent starts, cmux opens a separate pane below the Plan panel for its conversation. Each active subagent gets its own vertical pane. Its pane closes when that agent finishes or stops; the Plan panel stays open.
+
+The panel uses a compact tree with `├─` and `└─` rows, task IDs, and status marks. It keeps tasks in their original order. Dependencies identify tasks that must finish before another task starts. The panel uses the Pi terminal UI toolkit to wrap text and handle scrolling and resizing.
+
+The optional [`@qwerzl/pi-cmux-panel`](../packages/cmux-panel/README.md) extension moves the existing footer statistics and pi-lens diagnostic display into this tree. It keeps the existing calculations for model usage, speed, cost, Git, MCP, and extension status. While the panel reads these updates, the extension hides the main todo widget, diagnostic widget, and custom footer. Other widgets, tool output, and the input box stay unchanged.
+
+If the panel closes or stops reading, those main displays return within four seconds. The extension does not edit installed dependencies. After installation, run `/reload` once in the main Pi session.
+
+To use these controls, click the panel first:
+
+- Press `c` to show or hide completed tasks.
+- Press the arrow keys or use the mouse wheel to scroll.
+- Press `q` to exit.
+
+Install the [Pi extension](../packages/cmux-panel/README.md#install) and run `pnpm install` from the repository root. New interactive Pi conversations in cmux open their panel automatically without taking focus. For Pi processes already running before this change, run `/reload` in each conversation. The extension reuses an existing panel on reload or when switching sessions in the same terminal.
+
+If automatic opening fails, run `node /absolute/path/to/pi-plugins/cmux/open-panel.ts` from that conversation's cmux terminal. The command uses `CMUX_WORKSPACE_ID` and `CMUX_SURFACE_ID`; you can pass the conversation's surface UUID as the first argument when `CMUX_SURFACE_ID` is unavailable. It also reuses an existing panel rather than opening a duplicate.
+
+The launcher runs `todo-panel.ts --surface <conversation-surface-uuid>`. Closing its tab also closes the subagent panes it opened. If you used the old Dock viewer, close its Plan tab to avoid two viewers reading the same session.
+
+For a fixed session file, run `node cmux/todo-panel.ts /absolute/path/to/session.jsonl`. Without a terminal, this prints the task list. The legacy `--follow` mode still follows the selected workspace, but the launcher does not use it.
+
+The viewer reads saved task lists from `@juicesharp/rpiv-todo` in Pi v2/v3 JSONL session files. It follows the conversation branch from the latest saved entry. It includes older tasks and ignores deleted tasks. It looks for file changes every half second. A read or format error displays a warning. The viewer never writes to the session file.
+
+Each panel stays in its conversation's workspace. Switching workspaces shows that workspace's own layout. Clicking another terminal does not redirect an attached panel. Its header identifies the project and session ID.
+
+The viewer checks the conversation every half second. `/new`, `/resume`, and `/fork` select the new session after cmux reports it and Pi saves its file. This releases the previous reader and clears its tasks and statistics. If the source terminal closes or has no saved Pi session, the panel shows an empty state instead of another conversation.
+
+The viewer reads cmux Pi hook records and searches `~/.pi/agent/sessions/` for the matching session ID. `PI_CODING_AGENT_DIR` changes the Pi directory. A session stored elsewhere still works in fixed-file mode. Existing Pi processes need `/reload` once to activate the statistics bridge and automatic opening.
+
+With the bridge active, the task tree follows the live Pi branch. Without the bridge, a `/tree` selection cannot appear until Pi writes again. The viewer does not support unsaved sessions or other todo tools. Large session files with frequent changes can slow updates because the viewer reads the complete file after each change.
+
+Subagent panes follow the installed `@tintinweb/pi-subagents` extension's top-level lifecycle events. They use Pi's Markdown renderer for the saved prompt and assistant text. Tool calls appear as compact rows; tool results stay collapsed so large file reads do not bury the conversation. Click a subagent pane and press `e` to show or hide tool output. The transcript updates after each agent turn, not token by token. Internal thinking is not shown. If transcript recording is disabled, the pane shows a waiting message instead of reading another data source. Workflow-owned and nested agents do not emit top-level lifecycle events, so they do not get panes. cmux may refuse another split when the side column runs out of height; the Plan panel shows that error instead of dropping an agent silently. Run `/reload` in each Pi conversation after updating the bridge. The existing Plan viewer stays open.
+
 ## Test
 
 The tests cover project grouping, activity ordering, five-item limits, conversation titles, status mapping, session deduplication, selection, and navigation targets. The sidebar also needs a visual check in cmux after layout changes. Its custom sidebar API is in beta.
