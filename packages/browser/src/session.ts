@@ -142,16 +142,21 @@ export class BrowserSession {
     return this.serial(() => this.endTurn(aborted ? 'Interrupt' : 'Stop'))
   }
 
-  close(): Promise<void> {
+  close(): Promise<string | undefined> {
     return this.serial(async () => {
+      let warning: string | undefined
       try {
         await this.endTurn('Interrupt')
+      }
+      catch (error) {
+        warning = `Browser turn cleanup failed; some browser tabs may still be open. ${String(error)}`
       }
       finally {
         await this.client?.close()
         this.client = undefined
         this.turnId = undefined
       }
+      return warning
     })
   }
 }

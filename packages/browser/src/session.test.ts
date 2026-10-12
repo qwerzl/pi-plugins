@@ -175,8 +175,17 @@ describe('pinned browser session', () => {
     mocks.callTool.mockRejectedValue(new Error('cleanup failed'))
     await expect(session.finishTurn()).rejects.toThrow('cleanup failed')
     await expect(session.execute('code', 'test', 1000, context().ctx)).rejects.toThrow('cleanup failed')
-    await expect(session.close()).rejects.toThrow('cleanup failed')
+    await expect(session.close()).resolves.toContain('some browser tabs may still be open')
     expect(mocks.close).toHaveBeenCalledOnce()
+  })
+
+  it('keeps transport shutdown failures visible and retries closing the same client', async () => {
+    const session = new BrowserSession()
+    await session.execute('code', 'test', 1000, context().ctx)
+    mocks.close.mockRejectedValueOnce(new Error('transport shutdown failed'))
+    await expect(session.close()).rejects.toThrow('transport shutdown failed')
+    await expect(session.close()).resolves.toBeUndefined()
+    expect(mocks.close).toHaveBeenCalledTimes(2)
   })
 
   it('fails closed on a missing tool or failed connection and releases the client', async () => {

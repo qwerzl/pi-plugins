@@ -1,19 +1,33 @@
 import type { ImageContent, TextContent } from '@earendil-works/pi-ai'
-import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
+import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 import { Type } from '@earendil-works/pi-ai'
 import { registerCmux } from './cmux.ts'
 import { BrowserSession } from './session.ts'
 
 export default function browser(pi: ExtensionAPI): void {
   let session: BrowserSession | undefined
-  const reset = async (): Promise<void> => {
-    const previous = session
-    session = undefined
-    await previous?.close()
+  let stopping: Promise<string | undefined> | undefined
+  const reset = (): Promise<string | undefined> => {
+    stopping ??= (async () => {
+      try {
+        const warning = await session?.close()
+        session = undefined
+        return warning
+      }
+      finally {
+        stopping = undefined
+      }
+    })()
+    return stopping
   }
-  pi.on('session_shutdown', reset)
-  pi.on('session_start', reset)
-  pi.on('session_tree', reset)
+  const resetSession = async (_event: unknown, ctx: ExtensionContext): Promise<void> => {
+    const warning = await reset()
+    if (warning)
+      ctx.ui.notify(warning, 'warning')
+  }
+  pi.on('session_shutdown', resetSession)
+  pi.on('session_start', resetSession)
+  pi.on('session_tree', resetSession)
   pi.on('agent_settled', async (event, ctx) => {
     try {
       await session?.finishTurn(event.aborted)
@@ -39,6 +53,8 @@ Use only documented APIs. JS bindings persist between calls and user turns, but 
       timeout_ms: Type.Optional(Type.Integer({ minimum: 1, maximum: 120000, description: 'Script execution timeout; default 30000 ms.' })),
     }),
     async execute(_id, { code, title, timeout_ms = 30000 }, signal, _onUpdate, ctx) {
+      for (let pending = stopping; pending; pending = stopping)
+        await pending
       session ??= new BrowserSession()
       const result = await session.execute(code, title, timeout_ms, ctx, signal)
       const content: (TextContent | ImageContent)[] = []
@@ -60,8 +76,9 @@ Use only documented APIs. JS bindings persist between calls and user turns, but 
     executionMode: 'sequential',
     parameters: Type.Object({}),
     async execute() {
-      await reset()
-      return { content: [{ type: 'text', text: 'Browser runtime stopped. Start with a documented first-use entry point next time.' }], details: undefined }
+      const warning = await reset()
+      const text = 'Browser runtime stopped. Start with a documented first-use entry point next time.'
+      return { content: [{ type: 'text', text: warning ? `${text}\nWarning: ${warning}` : text }], details: undefined }
     },
   })
   registerCmux(pi)
