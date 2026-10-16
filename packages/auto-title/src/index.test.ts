@@ -140,7 +140,7 @@ describe('automatic session titles', () => {
     expect(h.notify).not.toHaveBeenCalled()
   })
 
-  it('updates mid-session and avoids writing unchanged names', async () => {
+  it('keeps the first generated title when the topic changes without making more requests', async () => {
     const h = harness()
     h.exchange()
     h.fire(settled)
@@ -149,17 +149,17 @@ describe('automatic session titles', () => {
     h.exchange('Now fix login')
     h.fire(settled)
     await flush()
-    expect(h.manager.getSessionName()).toBe('🔐 Fix login')
-    expect(h.streamSimple.mock.calls[1][1].messages[0].content).toContain('Current title: 🏷️ Auto titles')
+    expect(h.manager.getSessionName()).toBe('🏷️ Auto titles')
     h.exchange('Thanks, keep testing the login')
     h.fire(settled)
     await flush()
-    expect(h.setSessionName).toHaveBeenCalledTimes(2)
-    expect(h.appendEntry).toHaveBeenCalledTimes(2)
-    expect(h.setTitle).toHaveBeenLastCalledWith('🔐 Fix login')
+    expect(h.streamSimple).toHaveBeenCalledTimes(1)
+    expect(h.setSessionName).toHaveBeenCalledTimes(1)
+    expect(h.appendEntry).toHaveBeenCalledTimes(1)
+    expect(h.setTitle).toHaveBeenLastCalledWith('🏷️ Auto titles')
   })
 
-  it('restores ownership of generated names after reload', async () => {
+  it('preserves generated names after resume or reload without making a request', async () => {
     const first = harness()
     first.exchange()
     first.fire(settled)
@@ -171,7 +171,10 @@ describe('automatic session titles', () => {
     resumed.exchange('Add regression tests next')
     resumed.fire(settled)
     await flush()
-    expect(resumed.manager.getSessionName()).toBe('🧪 Add tests')
+    expect(resumed.manager.getSessionName()).toBe('🏷️ Auto titles')
+    expect(resumed.streamSimple).not.toHaveBeenCalled()
+    expect(resumed.setSessionName).not.toHaveBeenCalled()
+    expect(resumed.appendEntry).not.toHaveBeenCalled()
   })
 
   it('preserves manually named sessions without making a request', async () => {
@@ -262,6 +265,24 @@ describe('automatic session titles', () => {
     h.fire(settled)
     await flush()
     expect(h.notify).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries failed initial naming and stops requesting once it succeeds', async () => {
+    const h = harness()
+    h.result.mockRejectedValueOnce(new Error('offline'))
+    h.exchange()
+    h.fire(settled)
+    await flush()
+    expect(h.manager.getSessionName()).toBeUndefined()
+    h.exchange('Try again')
+    h.fire(settled)
+    await flush()
+    expect(h.manager.getSessionName()).toBe('🏷️ Auto titles')
+    h.exchange('Now fix login')
+    h.fire(settled)
+    await flush()
+    expect(h.streamSimple).toHaveBeenCalledTimes(2)
+    expect(h.setSessionName).toHaveBeenCalledTimes(1)
   })
 
   it('aborts a request after 15 seconds', async () => {

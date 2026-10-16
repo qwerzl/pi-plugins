@@ -2,7 +2,7 @@
   "name": "@qwerzl/pi-auto-title",
   "type": "module",
   "version": "0.1.0",
-  "description": "Short emoji-first pi session titles that follow the conversation",
+  "description": "Short emoji-first pi session titles generated once and kept fixed",
   "license": "MIT",
   "repository": {
     "type": "git",
