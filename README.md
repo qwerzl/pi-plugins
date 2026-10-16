@@ -19,7 +19,7 @@ The main `typescript` dependency is held at 6.0 for ESLint compatibility. Effect
 | Package | Purpose |
 | --- | --- |
 | [`@qwerzl/pi-codexcont`](packages/codexcont) | Bounded reasoning continuation for OpenAI Responses providers, without a proxy server |
-| [`@qwerzl/pi-auto-title`](packages/auto-title) | Short emoji-first session titles that update as the topic changes |
+| [`@qwerzl/pi-auto-title`](packages/auto-title) | Short emoji-first session titles generated once and kept fixed |
 | [`@qwerzl/pi-codex-retry`](packages/codex-retry) | Codex-style retries for failed model responses, without hidden continuation messages |
 | [`@qwerzl/pi-browser`](packages/browser) | Native cmux browser control and a browser-harness skill for Chrome |
 
@@ -124,9 +124,9 @@ Install the [auto-title package](packages/auto-title) to name conversations auto
 pi install ./packages/auto-title
 ```
 
-Restart pi. After each completed reply, it generates a short emoji-first title (for example, `🏷️ Auto titles` or `🔐 Fix login`) and updates it only when the topic changes. Pi persists the name and includes it in the terminal title and session selector. A manual `/name` takes precedence.
+Restart pi. After the first completed reply in an unnamed session, it generates a short emoji-first title (for example, `🏷️ Auto titles` or `🔐 Fix login`). The title stays fixed as the conversation evolves and after resume/reload. Pi persists the name and includes it in the terminal title and session selector. A manual `/name` takes precedence.
 
-Naming uses one small background request to the active model per completed reply, with no requested thinking and a 15-second timeout. Provider billing applies; see the package README for context and usage-accounting limits.
+Naming uses one small background request to the active model with a 15-second timeout, retrying after later completed replies only while the session remains unnamed. Reasoning models use low thinking; non-reasoning models request no thinking. Provider billing applies; see the package README for context and usage-accounting limits.
 
 ## Personal browser tools
 
